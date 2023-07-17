@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Kuadrant/multicluster-gateway-controller/pkg/apis/v1alpha1"
+	testutil "github.com/Kuadrant/multicluster-gateway-controller/test/util"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -33,15 +34,15 @@ var _ = Describe("ManagedZoneReconciler", func() {
 		BeforeEach(func() {
 			managedZone = &v1alpha1.ManagedZone{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "example.com",
-					Namespace: "default",
+					Name:      testutil.Domain,
+					Namespace: defaultNS,
 				},
 				Spec: v1alpha1.ManagedZoneSpec{
-					ID:         "example.com",
-					DomainName: "example.com",
+					ID:         testutil.Domain,
+					DomainName: testutil.Domain,
 					SecretRef: &v1alpha1.SecretRef{
 						Name:      providerCredential,
-						Namespace: "default",
+						Namespace: defaultNS,
 					},
 				},
 			}
@@ -50,7 +51,7 @@ var _ = Describe("ManagedZoneReconciler", func() {
 		AfterEach(func() {
 			// Clean up managedZones
 			mzList := &v1alpha1.ManagedZoneList{}
-			err := k8sClient.List(ctx, mzList, client.InNamespace("default"))
+			err := k8sClient.List(ctx, mzList, client.InNamespace(defaultNS))
 			Expect(err).NotTo(HaveOccurred())
 			for _, mz := range mzList.Items {
 				err = k8sClient.Delete(ctx, &mz)
@@ -80,7 +81,7 @@ var _ = Describe("ManagedZoneReconciler", func() {
 			invalidDomainNameManagedZone := &v1alpha1.ManagedZone{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "invalid_domain",
-					Namespace: "default",
+					Namespace: defaultNS,
 				},
 				Spec: v1alpha1.ManagedZoneSpec{
 					ID:         "invalid_domain",

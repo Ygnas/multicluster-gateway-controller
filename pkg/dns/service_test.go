@@ -26,7 +26,7 @@ import (
 func TestDNS_GetDNSRecords(t *testing.T) {
 	cases := []struct {
 		Name      string
-		MZ        func() *v1alpha1.ManagedZone
+		MZ        *v1alpha1.ManagedZone
 		SubDomain string
 		Assert    func(t *testing.T, dnsRecord *v1alpha1.DNSRecord, err error)
 		DNSRecord *v1alpha1.DNSRecord
@@ -34,30 +34,28 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 	}{
 		{
 			Name: "test get dns record returns record",
-			MZ: func() *v1alpha1.ManagedZone {
-				return &v1alpha1.ManagedZone{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "b.c.com",
-						Namespace: "test",
-					},
-					Spec: v1alpha1.ManagedZoneSpec{
-						DomainName: "b.c.com",
-					},
-				}
+			MZ: &v1alpha1.ManagedZone{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "b.c.com",
+					Namespace: testutil.Namespace,
+				},
+				Spec: v1alpha1.ManagedZoneSpec{
+					DomainName: "b.c.com",
+				},
 			},
 			SubDomain: "a",
 			DNSRecord: &v1alpha1.DNSRecord{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "a.b.c.com",
-					Namespace: "test",
+					Namespace: testutil.Namespace,
 					Labels: map[string]string{
-						dns.LabelGatewayReference: "test",
+						dns.LabelGatewayReference: testutil.Namespace,
 					},
 				},
 			},
 			Gateway: &gatewayv1beta1.Gateway{
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("test"),
+					UID: types.UID(testutil.Namespace),
 				},
 			},
 
@@ -69,22 +67,20 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 		},
 		{
 			Name: "test get dns error when not found",
-			MZ: func() *v1alpha1.ManagedZone {
-				return &v1alpha1.ManagedZone{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "b.c.com",
-						Namespace: "test",
-					},
-					Spec: v1alpha1.ManagedZoneSpec{
-						DomainName: "b.c.com",
-					},
-				}
+			MZ: &v1alpha1.ManagedZone{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "b.c.com",
+					Namespace: testutil.Namespace,
+				},
+				Spec: v1alpha1.ManagedZoneSpec{
+					DomainName: "b.c.com",
+				},
 			},
 			SubDomain: "a",
 			DNSRecord: &v1alpha1.DNSRecord{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "other.com",
-					Namespace: "test",
+					Namespace: testutil.Namespace,
 				},
 			},
 			Gateway: &gatewayv1beta1.Gateway{},
@@ -99,22 +95,20 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 		},
 		{
 			Name: "test get dns error when referencing different Gateway",
-			MZ: func() *v1alpha1.ManagedZone {
-				return &v1alpha1.ManagedZone{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "b.c.com",
-						Namespace: "test",
-					},
-					Spec: v1alpha1.ManagedZoneSpec{
-						DomainName: "b.c.com",
-					},
-				}
+			MZ: &v1alpha1.ManagedZone{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "b.c.com",
+					Namespace: testutil.Namespace,
+				},
+				Spec: v1alpha1.ManagedZoneSpec{
+					DomainName: "b.c.com",
+				},
 			},
 			SubDomain: "a",
 			DNSRecord: &v1alpha1.DNSRecord{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "a.b.c.com",
-					Namespace: "test",
+					Namespace: testutil.Namespace,
 					Labels: map[string]string{
 						dns.LabelGatewayReference: "reference",
 					},
@@ -122,7 +116,7 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 			},
 			Gateway: &gatewayv1beta1.Gateway{
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("test"),
+					UID: types.UID(testutil.Namespace),
 				},
 			},
 			Assert: func(t *testing.T, dnsRecord *v1alpha1.DNSRecord, err error) {
@@ -136,24 +130,22 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 		},
 		{
 			Name: "test get dns error when not owned by Gateway",
-			MZ: func() *v1alpha1.ManagedZone {
-				return &v1alpha1.ManagedZone{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "b.c.com",
-						Namespace: "test",
-					},
-					Spec: v1alpha1.ManagedZoneSpec{
-						DomainName: "b.c.com",
-					},
-				}
+			MZ: &v1alpha1.ManagedZone{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "b.c.com",
+					Namespace: testutil.Namespace,
+				},
+				Spec: v1alpha1.ManagedZoneSpec{
+					DomainName: "b.c.com",
+				},
 			},
 			SubDomain: "a",
 			DNSRecord: &v1alpha1.DNSRecord{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "other.com",
-					Namespace: "test",
+					Namespace: testutil.Namespace,
 					Labels: map[string]string{
-						dns.LabelGatewayReference: "test",
+						dns.LabelGatewayReference: testutil.Namespace,
 					},
 				},
 			},
@@ -178,7 +170,7 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 			gw := traffic.NewGateway(tc.Gateway)
 			f := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tc.DNSRecord).Build()
 			s := dns.NewService(f)
-			record, err := s.GetDNSRecord(context.TODO(), tc.SubDomain, tc.MZ(), gw)
+			record, err := s.GetDNSRecord(context.TODO(), tc.SubDomain, tc.MZ, gw)
 			tc.Assert(t, record, err)
 		})
 	}
@@ -215,7 +207,7 @@ func TestDNS_findMatchingManagedZone(t *testing.T) {
 				{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "example.com",
-						Namespace: "test",
+						Namespace: testutil.Namespace,
 					},
 					Spec: v1alpha1.ManagedZoneSpec{
 						DomainName: "example.com",
@@ -242,7 +234,7 @@ func TestDNS_findMatchingManagedZone(t *testing.T) {
 				{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "example.com",
-						Namespace: "test",
+						Namespace: testutil.Namespace,
 					},
 					Spec: v1alpha1.ManagedZoneSpec{
 						DomainName: "example.com",
@@ -251,7 +243,7 @@ func TestDNS_findMatchingManagedZone(t *testing.T) {
 				{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "test.example.com",
-						Namespace: "test",
+						Namespace: testutil.Namespace,
 					},
 					Spec: v1alpha1.ManagedZoneSpec{
 						DomainName: "test.example.com",
@@ -275,7 +267,7 @@ func TestDNS_findMatchingManagedZone(t *testing.T) {
 				{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "test.example.com",
-						Namespace: "test",
+						Namespace: testutil.Namespace,
 					},
 					Spec: v1alpha1.ManagedZoneSpec{
 						DomainName: "test.example.com",
@@ -299,7 +291,7 @@ func TestDNS_findMatchingManagedZone(t *testing.T) {
 				{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "testing.example.com",
-						Namespace: "test",
+						Namespace: testutil.Namespace,
 					},
 					Spec: v1alpha1.ManagedZoneSpec{
 						DomainName: "testing.example.com",
@@ -327,7 +319,7 @@ func TestDNS_findMatchingManagedZone(t *testing.T) {
 				{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "example.co.uk",
-						Namespace: "test",
+						Namespace: testutil.Namespace,
 					},
 					Spec: v1alpha1.ManagedZoneSpec{
 						DomainName: "example.co.uk",
@@ -354,7 +346,7 @@ func TestDNS_findMatchingManagedZone(t *testing.T) {
 				{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "co.uk",
-						Namespace: "test",
+						Namespace: testutil.Namespace,
 					},
 					Spec: v1alpha1.ManagedZoneSpec{
 						DomainName: "co.uk",
@@ -405,13 +397,13 @@ func TestService_CleanupDNSRecords(t *testing.T) {
 			name: "DNS record gets deleted",
 			gateway: &gatewayv1beta1.Gateway{
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("test"),
+					UID: types.UID(testutil.Namespace),
 				},
 			},
 			record: &v1alpha1.DNSRecord{
 				ObjectMeta: v1.ObjectMeta{
 					Labels: map[string]string{
-						dns.LabelGatewayReference: "test",
+						dns.LabelGatewayReference: testutil.Namespace,
 					},
 				},
 			},
@@ -421,7 +413,7 @@ func TestService_CleanupDNSRecords(t *testing.T) {
 			name: "no DNS records do be deleted",
 			gateway: &gatewayv1beta1.Gateway{
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("test"),
+					UID: types.UID(testutil.Namespace),
 				},
 			},
 			record:  &v1alpha1.DNSRecord{},
@@ -455,7 +447,7 @@ func TestService_GetManagedZoneForHost(t *testing.T) {
 			host: "example.com",
 			gateway: &gatewayv1beta1.Gateway{
 				ObjectMeta: v1.ObjectMeta{
-					Namespace: "test",
+					Namespace: testutil.Namespace,
 				},
 			},
 			mz: &v1alpha1.ManagedZoneList{
@@ -463,7 +455,7 @@ func TestService_GetManagedZoneForHost(t *testing.T) {
 					{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "example.com",
-							Namespace: "test",
+							Namespace: testutil.Namespace,
 						},
 						Spec: v1alpha1.ManagedZoneSpec{
 							DomainName: "example.com",
@@ -480,7 +472,7 @@ func TestService_GetManagedZoneForHost(t *testing.T) {
 			host: "example.com",
 			gateway: &gatewayv1beta1.Gateway{
 				ObjectMeta: v1.ObjectMeta{
-					Namespace: "test",
+					Namespace: testutil.Namespace,
 				},
 			},
 			mz:      &v1alpha1.ManagedZoneList{},
@@ -859,7 +851,7 @@ func TestService_CreateDNSRecord(t *testing.T) {
 				managedZone: &v1alpha1.ManagedZone{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "mz",
-						Namespace: "test",
+						Namespace: testutil.Namespace,
 					},
 					Spec: v1alpha1.ManagedZoneSpec{
 						DomainName: "domain.com",
@@ -875,7 +867,7 @@ func TestService_CreateDNSRecord(t *testing.T) {
 			wantRecord: &v1alpha1.DNSRecord{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "sub.domain.com",
-					Namespace: "test",
+					Namespace: testutil.Namespace,
 					Labels: map[string]string{
 						dns.LabelRecordID:         "sub",
 						dns.LabelGatewayReference: "gatewayUID",
@@ -910,7 +902,7 @@ func TestService_CreateDNSRecord(t *testing.T) {
 				managedZone: &v1alpha1.ManagedZone{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "mz",
-						Namespace: "test",
+						Namespace: testutil.Namespace,
 					},
 					Spec: v1alpha1.ManagedZoneSpec{
 						DomainName: "domain.com",
@@ -927,7 +919,7 @@ func TestService_CreateDNSRecord(t *testing.T) {
 					{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "sub.domain.com",
-							Namespace: "test",
+							Namespace: testutil.Namespace,
 						},
 					},
 				},
@@ -935,7 +927,7 @@ func TestService_CreateDNSRecord(t *testing.T) {
 			wantRecord: &v1alpha1.DNSRecord{
 				ObjectMeta: v1.ObjectMeta{
 					Name:            "sub.domain.com",
-					Namespace:       "test",
+					Namespace:       testutil.Namespace,
 					ResourceVersion: "999",
 				},
 				TypeMeta: v1.TypeMeta{
@@ -974,7 +966,7 @@ func TestService_GetManagedHosts(t *testing.T) {
 			name: "got managed hosts",
 			gateway: &gatewayv1beta1.Gateway{
 				ObjectMeta: v1.ObjectMeta{
-					Namespace: "test",
+					Namespace: testutil.Namespace,
 					UID:       types.UID("gatewayUID"),
 				},
 				Spec: gatewayv1beta1.GatewaySpec{
@@ -990,7 +982,7 @@ func TestService_GetManagedHosts(t *testing.T) {
 					Items: []v1alpha1.ManagedZone{
 						{
 							ObjectMeta: v1.ObjectMeta{
-								Namespace: "test",
+								Namespace: testutil.Namespace,
 							},
 							Spec: v1alpha1.ManagedZoneSpec{
 								DomainName: "domain.com",
@@ -1003,7 +995,7 @@ func TestService_GetManagedHosts(t *testing.T) {
 						{
 							ObjectMeta: v1.ObjectMeta{
 								Name:      "sub.domain.com",
-								Namespace: "test",
+								Namespace: testutil.Namespace,
 								Labels: map[string]string{
 									dns.LabelGatewayReference: "gatewayUID",
 								},
@@ -1018,7 +1010,7 @@ func TestService_GetManagedHosts(t *testing.T) {
 					Host:      "sub.domain.com",
 					ManagedZone: &v1alpha1.ManagedZone{
 						ObjectMeta: v1.ObjectMeta{
-							Namespace:       "test",
+							Namespace:       testutil.Namespace,
 							ResourceVersion: "999",
 						},
 						Spec: v1alpha1.ManagedZoneSpec{
@@ -1028,7 +1020,7 @@ func TestService_GetManagedHosts(t *testing.T) {
 					DnsRecord: &v1alpha1.DNSRecord{
 						ObjectMeta: v1.ObjectMeta{
 							Name:            "sub.domain.com",
-							Namespace:       "test",
+							Namespace:       testutil.Namespace,
 							ResourceVersion: "999",
 							Labels: map[string]string{
 								dns.LabelGatewayReference: "gatewayUID",
@@ -1046,7 +1038,7 @@ func TestService_GetManagedHosts(t *testing.T) {
 			name: "No hosts retrieved for CNAME or externaly managed host",
 			gateway: &gatewayv1beta1.Gateway{
 				ObjectMeta: v1.ObjectMeta{
-					Namespace: "test",
+					Namespace: testutil.Namespace,
 					UID:       types.UID("gatewayUID"),
 				},
 				Spec: gatewayv1beta1.GatewaySpec{

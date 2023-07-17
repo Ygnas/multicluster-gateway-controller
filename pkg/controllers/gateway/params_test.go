@@ -8,20 +8,18 @@ import (
 	"reflect"
 	"testing"
 
+	testutil "github.com/Kuadrant/multicluster-gateway-controller/test/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	gatewayv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
-
-	testutil "github.com/Kuadrant/multicluster-gateway-controller/test/util"
 )
 
 func TestGetParams(t *testing.T) {
 	cases := []struct {
-		name string
-
+		name         string
 		gatewayClass *gatewayv1beta1.GatewayClass
 		paramsObj    client.Object
 		assertParams func(*Params, error) error
@@ -36,15 +34,15 @@ func TestGetParams(t *testing.T) {
 					ParametersRef: &gatewayv1beta1.ParametersReference{
 						Group:     "",
 						Kind:      "ConfigMap",
-						Name:      "test-params",
-						Namespace: testutil.Pointer(gatewayv1beta1.Namespace("test-ns")),
+						Name:      testutil.DummyCRName,
+						Namespace: testutil.Pointer(gatewayv1beta1.Namespace(testutil.Namespace)),
 					},
 				},
 			},
 			paramsObj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-params",
-					Namespace: "test-ns",
+					Name:      testutil.DummyCRName,
+					Namespace: testutil.Namespace,
 				},
 				Data: map[string]string{
 					"params": `{"downstreamClass": "istio"}`,
@@ -66,8 +64,8 @@ func TestGetParams(t *testing.T) {
 			},
 			paramsObj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-params",
-					Namespace: "test-ns",
+					Name:      testutil.DummyCRName,
+					Namespace: testutil.Namespace,
 				},
 				Data: map[string]string{
 					"params": `{"downstreamClass": "istio"}`,
@@ -87,15 +85,15 @@ func TestGetParams(t *testing.T) {
 					ParametersRef: &gatewayv1beta1.ParametersReference{
 						Group:     "",
 						Kind:      "ConfigMap",
-						Name:      "test-params",
-						Namespace: testutil.Pointer(gatewayv1beta1.Namespace("test-ns")),
+						Name:      testutil.DummyCRName,
+						Namespace: testutil.Pointer(gatewayv1beta1.Namespace(testutil.Namespace)),
 					},
 				},
 			},
 			paramsObj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-params",
-					Namespace: "test-ns",
+					Name:      testutil.DummyCRName,
+					Namespace: testutil.Namespace,
 				},
 				Data: map[string]string{
 					"parameters": `{"downstreamClass": "istio"}`,
@@ -110,15 +108,15 @@ func TestGetParams(t *testing.T) {
 					ParametersRef: &gatewayv1beta1.ParametersReference{
 						Group:     "",
 						Kind:      "ConfigMap",
-						Name:      "test-params",
-						Namespace: testutil.Pointer(gatewayv1beta1.Namespace("test-ns")),
+						Name:      testutil.DummyCRName,
+						Namespace: testutil.Pointer(gatewayv1beta1.Namespace(testutil.Namespace)),
 					},
 				},
 			},
 			paramsObj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-params",
-					Namespace: "test-ns",
+					Name:      testutil.DummyCRName,
+					Namespace: testutil.Namespace,
 				},
 				Data: map[string]string{
 					"params": `{"downstreamClass": "istio" boop`,
@@ -133,14 +131,14 @@ func TestGetParams(t *testing.T) {
 					ParametersRef: &gatewayv1beta1.ParametersReference{
 						Group: "",
 						Kind:  "ConfigMap",
-						Name:  "test-params",
+						Name:  testutil.DummyCRName,
 					},
 				},
 			},
 			paramsObj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-params",
-					Namespace: "test-ns",
+					Name:      testutil.DummyCRName,
+					Namespace: testutil.Namespace,
 				},
 				Data: map[string]string{
 					"params": `{"downstreamClass": "istio"}`,
@@ -160,14 +158,14 @@ func TestGetParams(t *testing.T) {
 						Group:     "",
 						Kind:      "ConfigMap",
 						Name:      "test-params-no-exist",
-						Namespace: testutil.Pointer(gatewayv1beta1.Namespace("test-ns")),
+						Namespace: testutil.Pointer(gatewayv1beta1.Namespace(testutil.Namespace)),
 					},
 				},
 			},
 			paramsObj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-params",
-					Namespace: "test-ns",
+					Name:      testutil.DummyCRName,
+					Namespace: testutil.Namespace,
 				},
 			},
 			assertParams: assertError(IsInvalidParamsError),
@@ -183,15 +181,15 @@ func TestGetParams(t *testing.T) {
 					ParametersRef: &gatewayv1beta1.ParametersReference{
 						Group:     "foo",
 						Kind:      "Unsupported",
-						Name:      "test-params",
-						Namespace: testutil.Pointer(gatewayv1beta1.Namespace("test-ns")),
+						Name:      testutil.DummyCRName,
+						Namespace: testutil.Pointer(gatewayv1beta1.Namespace(testutil.Namespace)),
 					},
 				},
 			},
 			paramsObj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-params",
-					Namespace: "test-ns",
+					Name:      testutil.DummyCRName,
+					Namespace: testutil.Namespace,
 				},
 			},
 			assertParams: assertError(IsInvalidParamsError),

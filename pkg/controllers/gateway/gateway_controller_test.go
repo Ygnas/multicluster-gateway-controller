@@ -17,9 +17,12 @@ import (
 	"sigs.k8s.io/gateway-api/apis/v1beta1"
 
 	"github.com/Kuadrant/multicluster-gateway-controller/pkg/apis/v1alpha1"
+
+	fakedns "github.com/Kuadrant/multicluster-gateway-controller/pkg/dns/fake"
 	"github.com/Kuadrant/multicluster-gateway-controller/pkg/placement"
-	"github.com/Kuadrant/multicluster-gateway-controller/test"
-	"github.com/Kuadrant/multicluster-gateway-controller/test/util"
+	fakeplacement "github.com/Kuadrant/multicluster-gateway-controller/pkg/placement/fake"
+	faketls "github.com/Kuadrant/multicluster-gateway-controller/pkg/tls/fake"
+	testutil "github.com/Kuadrant/multicluster-gateway-controller/test/util"
 )
 
 func TestGatewayReconciler_Reconcile(t *testing.T) {
@@ -54,7 +57,7 @@ func TestGatewayReconciler_Reconcile(t *testing.T) {
 									Listeners: []v1beta1.Listener{
 										{
 											Name:     testutil.ValidTestHostname,
-											Hostname: getTestHostname(testutil.ValidTestHostname),
+											Hostname: testutil.Pointer(v1beta1.Hostname(testutil.ValidTestHostname)),
 											Protocol: v1beta1.HTTPSProtocolType,
 										},
 									},
@@ -232,7 +235,7 @@ func TestGatewayReconciler_Reconcile(t *testing.T) {
 									Listeners: []v1beta1.Listener{
 										{
 											Name:     v1beta1.SectionName(testutil.FailPlacementHostname),
-											Hostname: getTestHostname(testutil.FailPlacementHostname),
+											Hostname: testutil.Pointer(v1beta1.Hostname(testutil.FailPlacementHostname)),
 											Protocol: v1beta1.HTTPSProtocolType,
 										},
 									},
@@ -266,9 +269,9 @@ func TestGatewayReconciler_Reconcile(t *testing.T) {
 			r := &GatewayReconciler{
 				Client:       tt.fields.Client,
 				Scheme:       tt.fields.Scheme,
-				Certificates: test.NewTestCertificateService(tt.fields.Client),
-				HostService:  test.NewTestHostService(tt.fields.Client),
-				Placement:    test.NewTestGatewayPlacer(),
+				Certificates: faketls.NewTestCertificateService(tt.fields.Client),
+				HostService:  fakedns.NewTestHostService(tt.fields.Client),
+				Placement:    fakeplacement.NewTestGatewayPlacer(),
 			}
 			res, err := r.Reconcile(context.TODO(), tt.args.req)
 			tt.verify(res, err, t)
@@ -335,7 +338,7 @@ func TestGatewayReconciler_reconcileDownstreamFromUpstreamGateway(t *testing.T) 
 					Spec: v1beta1.GatewaySpec{
 						Listeners: []v1beta1.Listener{
 							{
-								Hostname: getTestHostname(testutil.FailEnsureCertHost),
+								Hostname: testutil.Pointer(v1beta1.Hostname(testutil.FailEnsureCertHost)),
 								Protocol: v1beta1.HTTPSProtocolType,
 							},
 						},
@@ -403,7 +406,7 @@ func TestGatewayReconciler_reconcileDownstreamFromUpstreamGateway(t *testing.T) 
 						Listeners: []v1beta1.Listener{
 							{
 								Name:     v1beta1.SectionName(testutil.ValidTestHostname),
-								Hostname: getTestHostname(testutil.FailFetchDANSSubdomain + "." + testutil.Domain),
+								Hostname: testutil.Pointer(v1beta1.Hostname(testutil.FailFetchDANSSubdomain + "." + testutil.Domain)),
 								Protocol: v1beta1.HTTPSProtocolType,
 							},
 						},
@@ -435,7 +438,7 @@ func TestGatewayReconciler_reconcileDownstreamFromUpstreamGateway(t *testing.T) 
 						Listeners: []v1beta1.Listener{
 							{
 								Name:     v1beta1.SectionName(testutil.ValidTestHostname),
-								Hostname: getTestHostname(testutil.ValidTestHostname),
+								Hostname: testutil.Pointer(v1beta1.Hostname(testutil.ValidTestHostname)),
 								Protocol: v1beta1.HTTPProtocolType,
 							},
 						},
@@ -463,7 +466,7 @@ func TestGatewayReconciler_reconcileDownstreamFromUpstreamGateway(t *testing.T) 
 						Listeners: []v1beta1.Listener{
 							{
 								Name:     v1beta1.SectionName(testutil.ValidTestHostname),
-								Hostname: getTestHostname(testutil.FailGetCertSecretHost),
+								Hostname: testutil.Pointer(v1beta1.Hostname(testutil.FailGetCertSecretHost)),
 								Protocol: v1beta1.HTTPSProtocolType,
 							},
 						},
@@ -502,9 +505,9 @@ func TestGatewayReconciler_reconcileDownstreamFromUpstreamGateway(t *testing.T) 
 			r := &GatewayReconciler{
 				Client:       tt.fields.Client,
 				Scheme:       tt.fields.Scheme,
-				Certificates: test.NewTestCertificateService(tt.fields.Client),
-				HostService:  test.NewTestHostService(tt.fields.Client),
-				Placement:    test.NewTestGatewayPlacer(),
+				Certificates: faketls.NewTestCertificateService(tt.fields.Client),
+				HostService:  fakedns.NewTestHostService(tt.fields.Client),
+				Placement:    fakeplacement.NewTestGatewayPlacer(),
 			}
 			requeue, programmedStatus, clusters, err := r.reconcileDownstreamFromUpstreamGateway(context.TODO(), tt.args.gateway, &Params{})
 			if (err != nil) != tt.wantErr || !testutil.GotExpectedError(tt.expectedError, err) {
@@ -557,7 +560,7 @@ func TestGatewayReconciler_reconcileTLS(t *testing.T) {
 						Listeners: []v1beta1.Listener{
 							{
 								Name:     testutil.ValidTestHostname,
-								Hostname: getTestHostname(testutil.ValidTestHostname),
+								Hostname: testutil.Pointer(v1beta1.Hostname(testutil.ValidTestHostname)),
 								Protocol: v1beta1.HTTPSProtocolType,
 							},
 						},
@@ -585,7 +588,7 @@ func TestGatewayReconciler_reconcileTLS(t *testing.T) {
 						Listeners: []v1beta1.Listener{
 							{
 								Name:     testutil.ValidTestHostname,
-								Hostname: getTestHostname(testutil.ValidTestHostname),
+								Hostname: testutil.Pointer(v1beta1.Hostname(testutil.ValidTestHostname)),
 								Protocol: v1beta1.HTTPProtocolType,
 							},
 						},
@@ -606,9 +609,9 @@ func TestGatewayReconciler_reconcileTLS(t *testing.T) {
 			r := &GatewayReconciler{
 				Client:       tt.fields.Client,
 				Scheme:       tt.fields.Scheme,
-				Certificates: test.NewTestCertificateService(tt.fields.Client),
-				HostService:  test.NewTestHostService(tt.fields.Client),
-				Placement:    test.NewTestGatewayPlacer(),
+				Certificates: faketls.NewTestCertificateService(tt.fields.Client),
+				HostService:  fakedns.NewTestHostService(tt.fields.Client),
+				Placement:    fakeplacement.NewTestGatewayPlacer(),
 			}
 			got, err := r.reconcileTLS(context.TODO(), tt.args.upstreamGateway, tt.args.gateway, tt.args.managedHosts)
 			if (err != nil) != tt.wantErr {
@@ -740,11 +743,6 @@ func verifyTLSSecretTestResultsAsExpected(got []v1.Object, want []v1.Object, gat
 	return true
 }
 
-func getTestHostname(hostname string) *v1beta1.Hostname {
-	hn := v1beta1.Hostname(hostname)
-	return &hn
-}
-
 func getValidCertificateSecret(hostname string) *corev1.SecretList {
 	return &corev1.SecretList{
 		Items: []corev1.Secret{
@@ -785,7 +783,7 @@ func buildValidTestGatewaySpec() v1beta1.GatewaySpec {
 		Listeners: []v1beta1.Listener{
 			{
 				Name:     v1beta1.SectionName(testutil.ValidTestHostname),
-				Hostname: getTestHostname(testutil.ValidTestHostname),
+				Hostname: testutil.Pointer(v1beta1.Hostname(testutil.ValidTestHostname)),
 				Protocol: v1beta1.HTTPSProtocolType,
 			},
 		},
