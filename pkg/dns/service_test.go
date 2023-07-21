@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/equality"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,7 +27,7 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 		Name      string
 		MZ        *v1alpha1.ManagedZone
 		SubDomain string
-		Assert    func(t *testing.T, dnsRecord *v1alpha1.DNSRecord, err error)
+		Assert    func(t *testing.T, err error)
 		DNSRecord *v1alpha1.DNSRecord
 		Gateway   *gatewayv1beta1.Gateway
 	}{
@@ -59,11 +58,7 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 				},
 			},
 
-			Assert: func(t *testing.T, dnsRecord *v1alpha1.DNSRecord, err error) {
-				if err != nil {
-					t.Fatalf("expectd no error but got %s", err)
-				}
-			},
+			Assert: testutil.AssertError(""),
 		},
 		{
 			Name: "test get dns error when not found",
@@ -84,14 +79,7 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 				},
 			},
 			Gateway: &gatewayv1beta1.Gateway{},
-			Assert: func(t *testing.T, dnsRecord *v1alpha1.DNSRecord, err error) {
-				if err == nil {
-					t.Fatalf("expected an error but got none")
-				}
-				if !k8serrors.IsNotFound(err) {
-					t.Fatalf("expected a not found error but got %s", err)
-				}
-			},
+			Assert:  testutil.AssertError("not found"),
 		},
 		{
 			Name: "test get dns error when referencing different Gateway",
@@ -119,14 +107,7 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 					UID: types.UID(testutil.Namespace),
 				},
 			},
-			Assert: func(t *testing.T, dnsRecord *v1alpha1.DNSRecord, err error) {
-				if err == nil {
-					t.Fatalf("expected an error but got none")
-				}
-				if k8serrors.IsNotFound(err) {
-					t.Fatalf("expected a custom error but got %s", err)
-				}
-			},
+			Assert: testutil.AssertError("host already in use"),
 		},
 		{
 			Name: "test get dns error when not owned by Gateway",
@@ -154,24 +135,17 @@ func TestDNS_GetDNSRecords(t *testing.T) {
 					UID: types.UID("not"),
 				},
 			},
-			Assert: func(t *testing.T, dnsRecord *v1alpha1.DNSRecord, err error) {
-				if err == nil {
-					t.Fatalf("expected an error but got none")
-				}
-				if !k8serrors.IsNotFound(err) {
-					t.Fatalf("expected a not found error but got %s", err)
-				}
-			},
+			Assert: testutil.AssertError("not found"),
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			gw := traffic.NewGateway(tc.Gateway)
-			f := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tc.DNSRecord).Build()
+			f := fake.NewClientBuilder().WithScheme(testutil.GetValidTestScheme()).WithObjects(tc.DNSRecord).Build()
 			s := dns.NewService(f)
-			record, err := s.GetDNSRecord(context.TODO(), tc.SubDomain, tc.MZ, gw)
-			tc.Assert(t, record, err)
+			_, err := s.GetDNSRecord(context.TODO(), tc.SubDomain, tc.MZ, gw)
+			tc.Assert(t, err)
 		})
 	}
 
@@ -423,7 +397,7 @@ func TestService_CleanupDNSRecords(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gw := traffic.NewGateway(tt.gateway)
-			f := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tt.record).Build()
+			f := fake.NewClientBuilder().WithScheme(testutil.GetValidTestScheme()).WithObjects(tt.record).Build()
 			s := dns.NewService(f)
 			if err := s.CleanupDNSRecords(context.TODO(), gw); (err != nil) != tt.wantErr {
 				t.Errorf("CleanupDNSRecords() error = %v, wantErr %v", err, tt.wantErr)
@@ -463,7 +437,7 @@ func TestService_GetManagedZoneForHost(t *testing.T) {
 					},
 				},
 			},
-			scheme:        testScheme(t),
+			scheme:        testutil.GetValidTestScheme(),
 			wantSubdomain: "example.com",
 			wantErr:       false,
 		},
@@ -798,7 +772,7 @@ func TestService_SetEndpoints(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tt.dnsRecord).Build()
+			f := fake.NewClientBuilder().WithScheme(testutil.GetValidTestScheme()).WithObjects(tt.dnsRecord).Build()
 			s := dns.NewService(f)
 
 			if err := s.SetEndpoints(context.TODO(), tt.mcgTarget, tt.dnsRecord); (err != nil) != tt.wantErr {
@@ -939,7 +913,7 @@ func TestService_CreateDNSRecord(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := fake.NewClientBuilder().WithScheme(testScheme(t)).WithLists(tt.recordList).Build()
+			f := fake.NewClientBuilder().WithScheme(testutil.GetValidTestScheme()).WithLists(tt.recordList).Build()
 			s := dns.NewService(f)
 
 			gotRecord, err := s.CreateDNSRecord(context.TODO(), tt.args.subDomain, tt.args.managedZone, tt.args.owner)
@@ -1055,7 +1029,7 @@ func TestService_GetManagedHosts(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := fake.NewClientBuilder().WithScheme(testScheme(t)).WithLists(tt.initLists...).Build()
+			f := fake.NewClientBuilder().WithScheme(testutil.GetValidTestScheme()).WithLists(tt.initLists...).Build()
 			s := dns.NewService(f)
 
 			got, err := s.GetManagedHosts(context.TODO(), traffic.NewGateway(tt.gateway))
@@ -1068,15 +1042,4 @@ func TestService_GetManagedHosts(t *testing.T) {
 			}
 		})
 	}
-}
-
-func testScheme(t *testing.T) *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	if err := v1alpha1.AddToScheme(scheme); err != nil {
-		t.Fatalf("falied to add work scheme %s ", err)
-	}
-	if err := gatewayv1beta1.AddToScheme(scheme); err != nil {
-		t.Fatalf("falied to add work scheme %s ", err)
-	}
-	return scheme
 }

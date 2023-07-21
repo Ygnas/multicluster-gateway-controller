@@ -85,6 +85,17 @@ func AssertNoErrorReconciliation() func(res ctrl.Result, err error, t *testing.T
 	}
 }
 
+func AssertError(expectedError string) func(t *testing.T, err error) {
+	return func(t *testing.T, err error) {
+		if (expectedError == "") != (err == nil) {
+			t.Errorf("expected error %s but got %s", expectedError, err)
+		}
+		if err != nil && !strings.Contains(err.Error(), expectedError) {
+			t.Errorf("expected error to be %s but got %s", expectedError, err)
+		}
+	}
+}
+
 func GetValidTestClient(initLists ...client.ObjectList) client.WithWatch {
 	return fake.NewClientBuilder().
 		WithScheme(GetValidTestScheme()).
